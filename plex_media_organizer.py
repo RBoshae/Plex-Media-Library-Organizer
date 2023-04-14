@@ -55,7 +55,6 @@ def format_movie_name(filename):
     return new_filename
 
 
-
 # Function to rename movie files using Plex naming convention
 def rename_movie_files(directory, extension):
     for root, dirs, files in os.walk(directory):
