@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from plex_media_organizer import PlexMediaOrganizer
-import omdb_api_key
+import keys
 
 def main():
     # Parse command-line arguments
@@ -14,7 +14,7 @@ def main():
     args = parser.parse_args()
 
     # Initialize PlexMediaOrganizer object
-    organizer = PlexMediaOrganizer(api_key=os.environ.get('OMDB_API_KEY') or omdb_api_key.OMDB_API_KEY)
+    organizer = PlexMediaOrganizer(api_key=os.environ.get('OMDB_API_KEY') or keys.OMDB_API_KEY)
 
     # Organize media files in the given directory
     organizer.organize_directory(args.path, guess=args.guess, silent=args.silent)
