@@ -5,14 +5,13 @@ import re
 
 # Function to fetch movie data from OMDb API
 def fetch_movie_data(title, year=None):
-    api_key = 'YOUR_OMDB_API_KEY'
-    url = f'http://www.omdbapi.com?apikey={api_key&t={title}'
+    url = f'http://www.omdbapi.com?apikey={api_key}&t={title}'
 
     # Make a request to the OMDb API
     response = requests.get(url)
     data = json.loads(response.text)
     
-    params = {"apikey": OMDB_API_KEY, "t": title}
+    params = {"apikey": api_key, "t": title}
     if year:
         params["y"] = year
     response = requests.get("http://www.omdbapi.com/", params=params)
@@ -27,10 +26,10 @@ def format_movie_name(filename):
     file_extension = os.path.splitext(filename)[1]
 
     # Remove file extension
-    filename_witout_ext = os.path.splitext(filename)[0]
+    filename_without_ext = os.path.splitext(filename)[0]
 
     # Split filename into parts
-    parts = file_name_without_ext.split('.')
+    parts = filename_without_ext.split('.')
 
     # Remove any non-alphanumeric characters from each part
     for i in range(len(parts)):
@@ -47,12 +46,14 @@ def format_movie_name(filename):
     data = fetch_movie_data(title)
 
     # Construct the new filename according to the Plex naming convention
-    new_filename = f'{data["Title"]} ({data["Year"]})'
-    if 'imdbID' in data:
-        new_filename += f' ({data["imdbID"})'
-    new_filename += file_extension
+    if data is not None:
+        new_filename = f'{data["Title"]} ({data["Year"]})'
+        if 'imdbID' in data:
+            new_filename += f' ({data["imdbID"]})'
+        new_filename += file_extension
     
-    return new_filename
+        return new_filename
+    return None
 
 
 # Function to rename movie files using Plex naming convention
@@ -66,8 +67,21 @@ def rename_movie_files(directory, extension):
                 os.rename(old_path, new_path)
                 print(f'Renamed {filename} to {new_filename}')
 
-# Example usage
-directory = "/path/to/your/digital/library/"
-extension = "mp4"
-rename_movie_files(path, extension)
+def guess_title(file_title):
+    """
+    Takes in a file title and returns a guessed movie title.
+    """
+    # Remove any known file extensions
+    file_title = re.sub(r'\.(avi|mp4|mkv|mov)$', '', file_title, flags=re.IGNORECASE)
+
+    # Split the remaining string by common delimiters
+    delimiters = ['.', '-', '_', ' ']
+    for delimiter in delimiters:
+        words = file_title.split(delimiter)
+        # If we have more than two words, assume the last two words are the movie title
+        if len(words) > 2:
+            return delimiter.join(words[-2:]).title()
+
+    # If we couldn't guess a movie title, return the original file title
+    return file_title.title()
 
