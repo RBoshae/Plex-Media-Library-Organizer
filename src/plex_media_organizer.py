@@ -2,6 +2,8 @@ import json
 import os
 import requests
 import re
+import sys
+sys.path.append('../')
 
 from typing import Optional
 
@@ -18,8 +20,8 @@ class PlexMediaOrganizer:
                         from a module named "keys" in the current working directory.
         """
 
-        if api_key is None:
-            api_key = os.environ.get('OMDB_API_KEY') or keys.OMDB_API_KEY
+        #if api_key is None:
+            # api_key = os.environ.get('OMDB_API_KEY') or keys.OMDB_API_KEY
         self.api_key = api_key
 
     def format_movie_name(self, file_path: str, guess: bool = False, silent: bool = False) -> str:
@@ -88,7 +90,7 @@ class PlexMediaOrganizer:
         # If we couldn't guess a movie title, return the original file title
         return file_title.title()
         
-    def request_movie_data(self, title: str, year: Optional[str] = None, guess: bool, silent: bool) -> dict:
+    def request_movie_data(self, title: str, year: Optional[str] = None) -> dict:
         """
         Function to fetch movie data from OMDb API.
 

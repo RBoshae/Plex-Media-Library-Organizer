@@ -1,9 +1,13 @@
 import argparse
 import os
+import sys
+sys.path.append('.')
 from pathlib import Path
 
-import keys
+from keys import OMDB_API_KEY
 from plex_media_organizer import PlexMediaOrganizer
+
+sys.path.append('src/')
 
 def main():
     # Parse command-line arguments
@@ -15,7 +19,7 @@ def main():
     args = parser.parse_args()
 
     # Initialize PlexMediaOrganizer object
-    organizer = PlexMediaOrganizer(api_key=os.environ.get('OMDB_API_KEY') or keys.OMDB_API_KEY)
+    organizer = PlexMediaOrganizer(api_key=os.environ.get('OMDB_API_KEY') or OMDB_API_KEY)
 
     if not os.path.exists(args.path):
         print(f"Error: Path {args.path} does not exist")
