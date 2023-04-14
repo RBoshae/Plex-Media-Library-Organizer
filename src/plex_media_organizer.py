@@ -64,15 +64,18 @@ class PlexMediaOrganizer:
             return new_filename
         return None
 
-    def guess_title(self, file_path: str) -> str:
+    def guess_movie_title(self, filename: str) -> str:
         """
         Attempts to guess the title of a movie from its file name.
 
-        :param file_name: The name of the movie file.
+        :param filename: The name of the movie file.
         :return: The guessed title of the movie, or None if the title could not be guessed.
         """
         # Remove any known file extensions
         file_title = re.sub(r'\.(avi|mp4|mkv|mov)$', '', file_title, flags=re.IGNORECASE)
+
+        # Remove common strings
+        file_title = self.remove_common_strings(file_title)
 
         # Split the remaining string by common delimiters
         delimiters = ['.', '-', '_', ' ']
@@ -85,7 +88,7 @@ class PlexMediaOrganizer:
         # If we couldn't guess a movie title, return the original file title
         return file_title.title()
         
-    def fetch_movie_data(self, title: str, year: Optional[str] = None) -> dict:
+    def request_movie_data(self, title: str, year: Optional[str] = None, guess: bool, silent: bool) -> dict:
         """
         Function to fetch movie data from OMDb API.
 
@@ -117,17 +120,80 @@ class PlexMediaOrganizer:
         else:
             return None
 
-    def rename_move_files(self, dir_path: str, silent: bool = False) -> None:
+    def fetch_movie_data(self, title: str, year: Optional[str] = None, guess: bool = False, silent: bool = False) -> dict:
         """
-        Renames and moves movie files from a source directory to a destination directory.
+        Fetches movie data from the OMDB API.
 
-        :param source_dir: The source directory containing the movie files.
-        :param destination_dir: The destination directory where the movie files will be moved to.
-        :param delete_source: Whether to delete the original movie files from the source directory after moving them.
-        :param skip_existing: Whether to skip files that already exist in the destination directory.
-        :param ignore_extensions: A list of file extensions to ignore when processing movie files.
-        :param ignore_regex: A regular expression pattern to match filenames to ignore when processing movie files.
+        Args:
+            title (str): The title of the movie.
+            year (str, optional): The year the movie was released. Defaults to None.
+            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
+            silent (bool): If true, the program will not ask for user input. Defaults to False.
+
+        Returns:
+            dict: A dictionary containing movie data, or an empty dictionary if no data was found.
         """
+
+        # Try to get data from OMDB API
+        movie_data = self.request_movie_data(title, year)
+
+        # If movie data is empty and guess is enabled, try to guess the movie title
+        if not movie_data and guess:
+            guess_title = self.guess_movie_title(title)
+            if guess_title != title:
+                if not silent:
+                    response = input(f"Do you want to search for '{guess_title}' instead? (Y/n)")
+                    if response.lower() == 'n':
+                        return {}
+                movie_data = self.get_movie_data(guess_title, year)
+
+        # Return the movie data
+        return movie_data
+
+
+    def rename_and_move_movie(self, pathname: str, silent: bool = False, guess: bool = False) -> None:
+        """
+        Renames and moves a movie file to a new directory based on the movie title.
+        
+        Args:
+            pathname (str): The path to the movie file.
+            silent (bool): If true, the program will not ask for user input. Defaults to False.
+            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
+        """
+        file_ext = os.path.splitext(filename)[1];
+        if file_ext not in ["avi","mp4","mkv","mov"] :
+            return
+
+        # Extract the filename from the pathname
+        filename = os.path.basename(pathname)
+
+        # Fetch movie data
+        movie_data = self.fetch_movie_data(filename, guess=guess, silent=silent)
+
+        # Format movie title
+        movie_title = self.format_movie_name(movie_data)
+
+        # Rename movie file 
+        new_filename = movie_title + file_ext 
+        if new_filename != filename:
+            new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
+            if not os.path.exists(new_pathname):
+                try:
+                    os.rename(pathname, os.path.join(os.path.dirname(pathname), new_filename))
+                except OSError as e:
+                    print(f"Error renaming file {filename}: {e}")
+            else: 
+                print("Warning! File name already exists. Skipping")
+
+        # Rename directory
+        directory = os.path.dirname(pathname)
+        new_directory = os.path.join(directory, movie_title)
+        if new_directory != directory:
+            try:
+                os.rename(directory, new_directory)
+            except OSError as e:
+                print(f"Error renaming directory {directory}: {e}")
+
 
     def remove_common_strings(filename): 
         """
@@ -167,37 +233,3 @@ class PlexMediaOrganizer:
         with open(COMMON_STRINGS_FILE, "w") as f:
             for s in common_strings:
                 f.write(s + "\n")
-
-    def organize_directory(self, directory: str, silent: bool = False) -> None:
-        """
-        Organizes a directory by renaming all movie files in the directory and its subdirectories.
-        Args:
-            directory: The path to the directory to be organized.
-            silent: A flag to run the function silently without prompting for user input.
-        """
-        # Get list of all movie files in directory and subdirectories
-        movie_files = get_movie_files(directory)
-
-        # Iterate through each movie file and rename it
-        for file_path in movie_files:
-            new_file_path = format_movie_name(file_path)
-            os.rename(file_path, new_file_path)
-            print(f"Renamed file: {file_path} -> {new_file_path}")
-        
-        # Remove common strings from movie file names
-        remove_common_strings(directory)
-
-        # Print completion message
-        print("Directory organization complete!")
-
-
-    def rename_movie_files(directory, extension):
-        for root, dirs, files in os.walk(directory):
-            for filename in files:
-                if filename.endswith(extension):
-                    old_path = os.path.join(root, filename)
-                    new_filename = format_movie_name(filename)
-                    new_path = os.path.join(root, new_filename)
-                    os.rename(old_path, new_path)
-                    print(f'Renamed {filename} to {new_filename}')
-
