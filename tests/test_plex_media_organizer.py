@@ -1,8 +1,20 @@
+import os
 import pytest
 import sys
-sys.path.append('../src')
+
+src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'))
+sys.path.append(src_dir)
 
 from plex_media_organizer import PlexMediaOrganizer 
+from keys import OMDB_API_KEY
+
+@pytest.fixture(scope='module')
+def api_key():
+    return OMDB_API_KEY
+
+@pytest.fixture(scope='module')
+def plex_media_organizer(api_key):
+    return PlexMediaOrganizer(api_key=api_key)
 
 @pytest.fixture
 def test_dir(tmpdir):
@@ -12,30 +24,23 @@ def test_dir(tmpdir):
     test_movie_dir.join("avengers.endgame.mov").write("")
     yield movies_dir
 
-def test_rename_and_move_movie(test_dir):
-    organizer = PlexMediaOrganizer()
+def test_format_movie_name(plex_media_organizer):
+    filename ='Avengers.Endgame.2019.mkv'
+    formatted_name = plex_media_organizer.format_movie_name(filename)
+    assert formatted_name == "Avengers: Endgame (2019) (tt4154796)"
 
+def test_guess_movie_title(plex_media_organizer):
+    title = 'The Avengers'
+    guessed_title = plex_media_organizer.guess_movie_title(title)
+    assert guessed_title == "Avengers"
+
+def test_rename_and_move_movie(test_dir, plex_media_organizer):
     # get the path to the test movie file
     test_movie_path = test_dir.join("Avengers", "avengers.mov")
 
     # run the method on the test movie file
-    organizer.rename_and_move_movie(test_movie_path)
+    plex_media_organizer.rename_and_move_movie(test_movie_path)
 
     # check if the file and directory were named correctly
     assert not test_movie_path.exists()
     assert test_dir.join("Avengers: Endgame (2019)").join("Avengers: Endgame (2019).mov").exists()
-
-# Test format_movie_name
-def test_format_movie_name():
-    organizer = PlexMediaOrganizer()
-    filename ='Avengers.Endgame.2019.mkv'
-    formatted_name = organizer.format_movie_name(filename)
-    assert formatted_name == "Avengers: Endgame (2019)"
-
-# Test guess_title
-def test_guess_movie_title():
-    organizer = PlexMediaOrganizer()
-    title = 'The Avengers'
-    guessed_title = organizer.guess_movie_title(title)
-    assert guessed_title == "Avengers: Endgame (2019)"
-
