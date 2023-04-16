@@ -180,7 +180,7 @@ class PlexMediaOrganizer:
             silent (bool): If true, the program will not ask for user input. Defaults to False.
             guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
         """
-        file_ext = os.path.splitext(filename)[1];
+        file_ext = os.path.splitext(pathname)[1];
         if file_ext not in ["avi","mp4","mkv","mov"] :
             return
 
