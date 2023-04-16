@@ -136,27 +136,6 @@ class PlexMediaOrganizer:
             return new_filename
         return None
 
-    def guess_movie_title(self, filename: str) -> str:
-        """
-        Attempts to guess the title of a movie from its file name.
-
-        :param filename: The name of the movie file.
-        :return: The guessed title of the movie, or None if the title could not be guessed.
-        """
-        # Remove any known file extensions
-        filename = re.sub(r'\.(avi|mp4|mkv|mov)$', '', filename, flags=re.IGNORECASE)
-
-        # Remove common strings
-        filename = self.remove_user_specified_strings(filename)
-
-        # Split the remaining string by common delimiters
-        delimiters = ['.', '-', '_', ' ']
-        for delimiter in delimiters:
-            words = filename.split(delimiter)
-            # If we have more than two words, assume the last two words are the movie title
-            if len(words) > 2:
-                return delimiter.join(words[-2:]).title()
-
         # If we couldn't guess a movie title, return the original file title
         return filename.title()
         

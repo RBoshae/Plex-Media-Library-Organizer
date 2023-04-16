@@ -29,11 +29,6 @@ def test_format_movie_name(plex_media_organizer):
     formatted_name = plex_media_organizer.format_movie_name(filename)
     assert formatted_name == "Avengers: Endgame (2019) (tt4154796)"
 
-def test_guess_movie_title(plex_media_organizer):
-    title = 'The Avengers'
-    guessed_title = plex_media_organizer.guess_movie_title(title)
-    assert guessed_title == "Avengers"
-
 def test_rename_and_move_movie(test_dir, plex_media_organizer):
     # get the path to the test movie file
     test_movie_path = test_dir.join("Avengers", "avengers.mov")
