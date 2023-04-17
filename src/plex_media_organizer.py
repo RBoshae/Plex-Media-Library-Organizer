@@ -7,25 +7,57 @@ import sys
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.append(project_dir)
 
-from typing import Optional
+from typing import Dict,Optional, Tuple
 
 from config import USER_SPECIFIED_STRINGS_FILE
 from keys import OMDB_API_KEY
 
 
-class PlexMediaOrganizer:
+class PlexMovieOrganizer:
     def __init__(self, api_key: Optional[str] = None):
         """
         Creates an instance of the PlexMediaOrganizer class.
 
-        :param api_key: (Optional) The API key to use for requests to the OMDb API. If not provided, it will look for the
-                        key in the environment variable "OMDB_API_KEY". If not found there, it will try to import the key
-                        from a module named "keys" in the current working directory.
+        :param api_key: (Optional) The API key to use for requests to the OMDb
+                        API. If not provided, it will look for the key in the
+                        environment variable "OMDB_API_KEY". If not found there, 
+                        it will try to import the key from a module named "keys"
+                        in the current working directory.
         """
 
         if api_key is None:
             api_key = os.environ.get('OMDB_API_KEY') or OMDB_API_KEY
         self.api_key = api_key
+
+    def execute_filepath_changes(self, changes: Dict[str, str]) -> None:
+        """
+        Executes the planned filepath change to rename and move movie files.
+
+        Args:
+            changes (Dict[str, str]): A dictionary containing the original
+            filepaths as keys and the filepaths to change to as values.
+
+        Returns:
+            None
+        """
+        for old_path, new_path in changes.items():
+            # Create directories in the new file path if they don't exist
+            new_dir = os.path.dirname(new_path)
+            if not os.path.exists(new_dir):
+                try:
+                    os.makedirs(new_dir)
+                except OSError as e:
+                    print(f"Error creating directory {new_dir}: {e}")
+                    continue
+
+            # Rename the file
+            if not os.path.exists(new_path):
+                try:
+                    os.rename(old_path, new_path)
+                except OSError as e:
+                    print(f"Error renaming file {old_path}: {e}")
+            else:
+                print(f"Warning! File {new_path} already exists. Skipping")
 
     def fetch_movie_data(self, title: str, year: Optional[str] = None, silent: bool = False) -> dict:
         """
@@ -34,11 +66,12 @@ class PlexMediaOrganizer:
         Args:
             title (str): The title of the movie.
             year (str, optional): The year the movie was released. Defaults to None.
-            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
-            silent (bool): If true, the program will not ask for user input. Defaults to False.
+            silent (bool): If true, the program will not ask for user input.
+                           Defaults to False.
 
         Returns:
-            dict: A dictionary containing movie data, or an empty dictionary if no data was found.
+            dict: A dictionary containing movie data, or an empty dictionary if
+            no data was found.
         """
 
         # Try to get data from OMDB API
@@ -56,19 +89,10 @@ class PlexMediaOrganizer:
         # Return the movie data
         return movie_data
 
-    def format_movie_name(self, filename: str, silent: bool = False) -> str:
-        """
-        Formats the name of a movie file.
-
-        :param filename: The name of the file.
-        :param silent: Whether to ask the user for confirmation before using the guessed movie title.
-        :return: The formatted name of the movie file, or None if the file extension is not supported.
-        """
-        # Remove file extension
-        filename_without_ext = os.path.splitext(filename)[0]
+    def clean_movie_name(self, name:str) -> str:
 
         # Split filename into parts
-        parts = filename_without_ext.split('.')
+        parts = name.split('.')
 
         # Remove any non-alphanumeric characters from each part
         for i in range(len(parts)):
@@ -79,39 +103,65 @@ class PlexMediaOrganizer:
             parts.pop()
 
         # Join the parts with spaces and capitalize each word
-        title = ' '.join(parts).title()
+        partially_clean_filename = ' '.join(parts).title()
 
         # Remove User Specified Strings
-        title = self.remove_user_specified_strings(name=title)
+        clean_filename = self.remove_user_specified_strings(name=partially_clean_filename)
 
-        # Fetch data for the movie from OMDb API
-        data = self.fetch_movie_data(title=title)
+        return clean_filename
+        
+
+    def format_movie_name(self, movie_data) -> str:
+        """
+        Formats the name of a movie file.
+
+        :param filename: The name of the file.
+        :param silent: Whether to ask the user for confirmation before using
+                       the guessed movie title.
+        :return: The formatted name of the movie file, or None if the file
+                 extension is not supported.
+        """
 
         # Construct the new filename according to the Plex naming convention
-        if data is not None:
-            new_filename = f'{data["Title"]} ({data["Year"]})'
-            if 'imdbID' in data:
-                new_filename += f' ({data["imdbID"]})'
+        if movie_data is not None:
+            new_filename = f'{movie_data["Title"]} ({movie_data["Year"]})'
+            if 'imdbID' in movie_data:
+                new_filename += f' ({movie_data["imdbID"]})'
         
             return new_filename
         return None
 
-        # If we couldn't guess a movie title, return the original file title
-        return filename.title()
-    def preview_changes(self, directory: str) -> dict:
-        changes = {}
+    def plan_filepath_change(self, pathname: str) -> Optional[Tuple[str, str]]:
+        """
+        Plans the renaming and moving of a movie file.
 
-        for root, dirs, files in os.walk(directory):
-            for file in files:
-                file_path = os.path.join(root, file)
-                file_extension = os.path.splitext(file)[1].lower()
+        Args:
+            pathname (str): The path to the movie file.
 
-                if file_extension in ['.avi', '.mp4', '.mkv', '.mov']:
-                    formatted_name = plex_organizer.format_movie_name(file_path)
-                    if formatted_name and formatted_name != file:
-                        changes[file] = formatted_name
+        Returns:
+            Optional[Tuple[str, str]]: A tuple containing the original filepath and the filepath to change to, or None if no changes are needed.
+        """
+        file_ext = os.path.splitext(pathname)[1]
+        if file_ext not in [".avi", ".mp4", ".mkv", ".mov"]:
+            return None
 
-        return changes
+        # Extract the filename from the pathname
+        filename = os.path.basename(pathname)
+
+        # Fetch movie data
+        movie_data = self.fetch_movie_data(filename) 
+
+        # Format movie title
+        movie_title = self.format_movie_name(movie_data)
+
+        # Construct new file path
+        new_filename = movie_title + file_ext
+        new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
+
+        if new_pathname != pathname:
+            return pathname, new_pathname
+        else:
+            return None
 
     def remove_user_specified_strings(self, name: str): 
         """
@@ -161,7 +211,8 @@ class PlexMediaOrganizer:
             title (str): The title of the movie to search for.
 
         Returns:
-            Optional[Dict[str, Any]]: A dictionary containing the movie data if the API request was successful,
+            Optional[Dict[str, Any]]: A dictionary containing the movie data if
+                                      the API request was successful,
             otherwise None.
 
         Raises:
@@ -184,47 +235,3 @@ class PlexMediaOrganizer:
             return response.json()
         else:
             return None
-
-    def rename_and_move_movie(self, pathname: str, silent: bool = False, guess: bool = False) -> None:
-        """
-        Renames and moves a movie file to a new directory based on the movie title.
-        
-        Args:
-            pathname (str): The path to the movie file.
-            silent (bool): If true, the program will not ask for user input. Defaults to False.
-            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
-        """
-        file_ext = os.path.splitext(pathname)[1]
-        if file_ext not in [".avi",".mp4",".mkv",".mov"] :
-            return
-
-        # Extract the filename from the pathname
-        filename = os.path.basename(pathname)
-
-        # Fetch movie data
-        movie_data = self.fetch_movie_data(filename, guess=guess, silent=silent)
-
-        # Format movie title
-        movie_title = self.format_movie_name(movie_data)
-
-        # Rename movie file 
-        new_filename = movie_title + file_ext 
-        if new_filename != filename:
-            new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
-            if not os.path.exists(new_pathname):
-                try:
-                    os.rename(pathname, os.path.join(os.path.dirname(pathname), new_filename))
-                except OSError as e:
-                    print(f"Error renaming file {filename}: {e}")
-            else: 
-                print("Warning! File name already exists. Skipping")
-
-        # Rename directory
-        directory = os.path.dirname(pathname)
-        new_directory = os.path.join(directory, movie_title)
-        if new_directory != directory:
-            try:
-                os.rename(directory, new_directory)
-            except OSError as e:
-                print(f"Error renaming directory {directory}: {e}")
-

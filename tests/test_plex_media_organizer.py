@@ -1,11 +1,12 @@
 import os
 import pytest
 import sys
+from typing import Dict
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'))
 sys.path.append(src_dir)
 
-from plex_media_organizer import PlexMediaOrganizer 
+from plex_media_organizer import PlexMovieOrganizer 
 from keys import OMDB_API_KEY
 
 @pytest.fixture(scope='module')
@@ -13,8 +14,8 @@ def api_key():
     return OMDB_API_KEY
 
 @pytest.fixture(scope='module')
-def plex_media_organizer(api_key):
-    return PlexMediaOrganizer(api_key=api_key)
+def plex_movie_organizer(api_key):
+    return PlexMovieOrganizer(api_key=api_key)
 
 @pytest.fixture
 def test_dir(tmpdir):
@@ -24,18 +25,30 @@ def test_dir(tmpdir):
     test_movie_dir.join("avengers.endgame.mov").write("")
     yield movies_dir
 
-def test_format_movie_name(plex_media_organizer):
+def test_format_movie_name(plex_movie_organizer):
     filename ='Avengers.Endgame.2019.mkv'
-    formatted_name = plex_media_organizer.format_movie_name(filename)
+    formatted_name = plex_movie_organizer.format_movie_name(filename)
     assert formatted_name == "Avengers: Endgame (2019) (tt4154796)"
 
-def test_rename_and_move_movie(test_dir, plex_media_organizer):
-    # get the path to the test movie file
-    test_movie_path = test_dir.join("Avengers", "avengers.mov")
+def test_plan_filepath_change(test_dir, plex_movie_organizer):
+    test_movie_path = str(test_dir.join("Avengers", "avengers.endgame.mov"))
+    planned_change = plex_movie_organizer.plan_filepath_change(test_movie_path)
 
-    # run the method on the test movie file
-    plex_media_organizer.rename_and_move_movie(test_movie_path)
+    expected_new_path = str(test_dir.join("Avengers: Endgame (2019)", "Avengers: Endgame (2019).mov"))
 
-    # check if the file and directory were named correctly
-    assert not test_movie_path.exists()
-    assert test_dir.join("Avengers: Endgame (2019)").join("Avengers: Endgame (2019).mov").exists()
+    assert planned_change == (test_movie_path, expected_new_path)
+
+def test_execute_filepath_changes(test_dir, plex_movie_organizer):
+    test_movie_path = str(test_dir.join("Avengers", "avengers.endgame.mov"))
+
+    planned_changes: Dict[str, str] = {
+        test_movie_path: str(test_dir.join("Avengers: Endgame (2019)", "Avengers: Endgame (2019).mov"))
+    }
+
+    plex_movie_organizer.execute_filepath_changes(planned_changes)
+
+    # Check if the original file no longer exists
+    assert not os.path.exists(test_movie_path)
+
+    # Check if the new file exists with the correct path
+    assert os.path.exists(planned_changes[test_movie_path])
