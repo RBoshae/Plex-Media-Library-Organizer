@@ -27,6 +27,92 @@ class PlexMediaOrganizer:
             api_key = os.environ.get('OMDB_API_KEY') or OMDB_API_KEY
         self.api_key = api_key
 
+    def fetch_movie_data(self, title: str, year: Optional[str] = None, silent: bool = False) -> dict:
+        """
+        Fetches movie data from the OMDB API.
+
+        Args:
+            title (str): The title of the movie.
+            year (str, optional): The year the movie was released. Defaults to None.
+            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
+            silent (bool): If true, the program will not ask for user input. Defaults to False.
+
+        Returns:
+            dict: A dictionary containing movie data, or an empty dictionary if no data was found.
+        """
+
+        # Try to get data from OMDB API
+        movie_data = self.request_movie_data(title, year)
+
+        # If movie data is empty and guess is enabled, try to guess the movie title
+        if not movie_data:
+            if not silent:
+                response = input(f"Unable to fetch movie data for {title}. To try again, please specify a movie title to search for? (Press Enter to skip)")
+                if response != '':
+                   # TODO Implement
+                   # self.format_movie_name(response) 
+                   print ("Not yet implemented, skipping for now")
+
+        # Return the movie data
+        return movie_data
+
+    def format_movie_name(self, filename: str, silent: bool = False) -> str:
+        """
+        Formats the name of a movie file.
+
+        :param filename: The name of the file.
+        :param silent: Whether to ask the user for confirmation before using the guessed movie title.
+        :return: The formatted name of the movie file, or None if the file extension is not supported.
+        """
+        # Remove file extension
+        filename_without_ext = os.path.splitext(filename)[0]
+
+        # Split filename into parts
+        parts = filename_without_ext.split('.')
+
+        # Remove any non-alphanumeric characters from each part
+        for i in range(len(parts)):
+            parts[i] = re.sub('[^0-9a-zA-Z]+', '', parts[i])
+        
+        # If the last part is a four digit number, assume it's the year and remove it
+        if parts[-1].isdigit() and len(parts[-1]) == 4:
+            parts.pop()
+
+        # Join the parts with spaces and capitalize each word
+        title = ' '.join(parts).title()
+
+        # Remove User Specified Strings
+        title = self.remove_user_specified_strings(name=title)
+
+        # Fetch data for the movie from OMDb API
+        data = self.fetch_movie_data(title=title)
+
+        # Construct the new filename according to the Plex naming convention
+        if data is not None:
+            new_filename = f'{data["Title"]} ({data["Year"]})'
+            if 'imdbID' in data:
+                new_filename += f' ({data["imdbID"]})'
+        
+            return new_filename
+        return None
+
+        # If we couldn't guess a movie title, return the original file title
+        return filename.title()
+    def preview_changes(self, directory: str) -> dict:
+        changes = {}
+
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_extension = os.path.splitext(file)[1].lower()
+
+                if file_extension in ['.avi', '.mp4', '.mkv', '.mov']:
+                    formatted_name = plex_organizer.format_movie_name(file_path)
+                    if formatted_name and formatted_name != file:
+                        changes[file] = formatted_name
+
+        return changes
+
     def remove_user_specified_strings(self, name: str): 
         """
         Removes user spefied strings listed in  from a given filename.
@@ -65,79 +151,7 @@ class PlexMediaOrganizer:
         with open(USER_SPECIFIED_STRINGS_FILE, "w") as f:
             for s in common_strings:
                 f.write(s + "\n")
-    def fetch_movie_data(self, title: str, year: Optional[str] = None, silent: bool = False) -> dict:
-        """
-        Fetches movie data from the OMDB API.
 
-        Args:
-            title (str): The title of the movie.
-            year (str, optional): The year the movie was released. Defaults to None.
-            guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
-            silent (bool): If true, the program will not ask for user input. Defaults to False.
-
-        Returns:
-            dict: A dictionary containing movie data, or an empty dictionary if no data was found.
-        """
-
-        # Try to get data from OMDB API
-        movie_data = self.request_movie_data(title, year)
-
-        # If movie data is empty and guess is enabled, try to guess the movie title
-        if not movie_data:
-            if not silent:
-                response = input(f"Unable to fetch movie data for {title}. To try again, please specify a movie title to search for? (Press Enter to skip)")
-                if response != '':
-                   # TODO Implement
-                   # self.format_movie_name(response) 
-                   print ("Not yet implemented, skipping for now")
-
-        # Return the movie data
-        return movie_data
-
-    def format_movie_name(self, filename: str, guess: bool = False, silent: bool = False) -> str:
-        """
-        Formats the name of a movie file.
-
-        :param filename: The name of the file.
-        :param guess: Whether to try to guess the movie title based on the file name, if the title is not found in the file
-                      name.
-        :param silent: Whether to ask the user for confirmation before using the guessed movie title.
-        :return: The formatted name of the movie file, or None if the file extension is not supported.
-        """
-        # Remove file extension
-        filename_without_ext = os.path.splitext(filename)[0]
-
-        # Split filename into parts
-        parts = filename_without_ext.split('.')
-
-        # Remove any non-alphanumeric characters from each part
-        for i in range(len(parts)):
-            parts[i] = re.sub('[^0-9a-zA-Z]+', '', parts[i])
-        
-        # If the last part is a four digit number, assume it's the year and remove it
-        if parts[-1].isdigit() and len(parts[-1]) == 4:
-            parts.pop()
-
-        # Join the parts with spaces and capitalize each word
-        title = ' '.join(parts).title()
-
-        # Remove User Specified Strings
-        title = self.remove_user_specified_strings(name=title)
-
-        # Fetch data for the movie from OMDb API
-        data = self.fetch_movie_data(title=title)
-
-        # Construct the new filename according to the Plex naming convention
-        if data is not None:
-            new_filename = f'{data["Title"]} ({data["Year"]})'
-            if 'imdbID' in data:
-                new_filename += f' ({data["imdbID"]})'
-        
-            return new_filename
-        return None
-
-        # If we couldn't guess a movie title, return the original file title
-        return filename.title()
         
     def request_movie_data(self, title: str, year: Optional[str] = None) -> dict:
         """
@@ -180,8 +194,8 @@ class PlexMediaOrganizer:
             silent (bool): If true, the program will not ask for user input. Defaults to False.
             guess (bool): If true, the program will try to guess the movie title if not found on OMDB. Defaults to False.
         """
-        file_ext = os.path.splitext(pathname)[1];
-        if file_ext not in ["avi","mp4","mkv","mov"] :
+        file_ext = os.path.splitext(pathname)[1]
+        if file_ext not in [".avi",".mp4",".mkv",".mov"] :
             return
 
         # Extract the filename from the pathname

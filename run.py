@@ -13,7 +13,6 @@ def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Organize media files in a directory')
     parser.add_argument('path', type=Path, help='path to the directory containing the media files')
-    parser.add_argument('--guess', action='store_true', help='guess movie titles if not found on OMDB')
     parser.add_argument('--silent', action='store_true', help='run without user input')
     parser.add_argument('--recursive', action='store_true', help='recurse into subdirectories')
     args = parser.parse_args()
@@ -26,7 +25,7 @@ def main():
         return
 
     if os.path.isfile(args.path):
-        organizer.rename_and_move_movies(args.path, guess=args.guess, silent=args.silent)
+        organizer.rename_and_move_movies(args.path, silent=args.silent)
     else:
         files = []
         if args.recurse:
@@ -37,7 +36,7 @@ def main():
             files = [os.path.join(args.path, f) for f in os.listdir(args.path) if os.path.isfile(os.path.join(directory, f))]
 
             for f in files:
-                organizer.rename_and_move_movies(f, guess=args.guess, silent=args.silent)
+                organizer.rename_and_move_movies(f, silent=args.silent)
 
 if __name__ == '__main__':
     main()
