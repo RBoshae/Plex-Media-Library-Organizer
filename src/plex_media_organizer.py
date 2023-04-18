@@ -81,6 +81,7 @@ class PlexMovieOrganizer:
         if not movie_data:
             if not silent:
                 response = input(f"Unable to fetch movie data for {title}. To try again, please specify a movie title to search for? (Press Enter to skip)")
+                return None # TODO Remove return None and implement lines below
                 if response != '':
                    # TODO Implement
                    # self.format_movie_name(response) 
@@ -88,24 +89,6 @@ class PlexMovieOrganizer:
 
         # Return the movie data
         return movie_data
-
-    def get_movie_title_from_pathname(pathname: str) -> str:
-        """
-        Extracts the movie title from a file path.
-
-        Args:
-            pathname (str): The path to the movie file.
-
-        Returns:
-            str: The extracted movie title.
-        """
-        # Extract the filename from the pathname
-        filename = os.path.basename(pathname)
-
-        # Remove the file extension from the filename
-        movie_title, _ = os.path.splitext(filename)
-
-        return movie_title
 
     def clean_movie_title(self, title:str) -> str:
 
@@ -129,15 +112,12 @@ class PlexMovieOrganizer:
         return clean_filename
         
 
-    def format_movie_name(self, movie_data) -> str:
+    def format_movie_filename(self, movie_data: dict) -> str:
         """
         Formats the name of a movie file.
 
-        :param filename: The name of the file.
-        :param silent: Whether to ask the user for confirmation before using
-                       the guessed movie title.
-        :return: The formatted name of the movie file, or None if the file
-                 extension is not supported.
+        :param movie_data: The collection containing movie information.
+        :return: The formatted name of the movie file.
         """
 
         # Construct the new filename according to the Plex naming convention
@@ -173,18 +153,21 @@ class PlexMovieOrganizer:
             # Extract the filename from the pathname
             filename = os.path.basename(pathname)
 
-            raw_title = get_movie_title_from_pathname(pathname)
+            filename_without_ext, _ = os.path.splitext(filename)
             
-            title = clean_movie_title(raw_title)
+            clean_title = self.clean_movie_title(filename_without_ext)
 
             # Fetch movie data
-            movie_data = self.fetch_movie_data(title) 
+            movie_data = self.fetch_movie_data(clean_title) 
+
+            if movie_data is None:
+                return
 
             # Format movie title
-            movie_title = self.format_movie_name(movie_data)
+            formatted_movie_filename = self.format_movie_filename(movie_data)
 
             # Construct new file path
-            new_filename = movie_title + file_ext
+            new_filename = formatted_movie_filename + file_ext
             new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
 
             if new_pathname != pathname:

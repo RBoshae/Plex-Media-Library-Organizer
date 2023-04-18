@@ -25,14 +25,26 @@ def test_dir(tmpdir):
     test_movie_dir.join("avengers.endgame.mov").write("")
     yield movies_dir
 
-def test_format_movie_name(plex_movie_organizer):
-    filename ='Avengers.Endgame.2019.mkv'
-    formatted_name = plex_movie_organizer.format_movie_name(filename)
-    assert formatted_name == "Avengers: Endgame (2019) (tt4154796)"
+def test_format_movie_filename(plex_movie_organizer):
+    # Sample movie data
+    movie_data = {
+        "Title": "The Shawshank Redemption",
+        "Year": "1994",
+        "imdbID": "tt0111161"
+    }
+
+    # Expected formatted movie filename
+    expected_filename = "The Shawshank Redemption (1994) (tt0111161)"
+
+    # Call the format_movie_filename function
+    formatted_filename = plex_movie_organizer.format_movie_filename(movie_data)
+
+    # Assert that the output matches the expected result
+    assert formatted_filename == expected_filename
 
 def test_plan_filepath_change(test_dir, plex_movie_organizer):
     test_movie_path = str(test_dir.join("Avengers", "avengers.endgame.mov"))
-    planned_change = plex_movie_organizer.plan_filepath_change(test_movie_path)
+    planned_change = plex_movie_organizer.plan_filepath_changes(test_movie_path)
 
     expected_new_path = str(test_dir.join("Avengers: Endgame (2019)", "Avengers: Endgame (2019).mov"))
 
