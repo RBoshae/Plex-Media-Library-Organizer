@@ -7,7 +7,7 @@ import sys
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 sys.path.append(project_dir)
 
-from typing import Dict,Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from config import USER_SPECIFIED_STRINGS_FILE
 from keys import OMDB_API_KEY
@@ -89,10 +89,28 @@ class PlexMovieOrganizer:
         # Return the movie data
         return movie_data
 
-    def clean_movie_name(self, name:str) -> str:
+    def get_movie_title_from_pathname(pathname: str) -> str:
+        """
+        Extracts the movie title from a file path.
+
+        Args:
+            pathname (str): The path to the movie file.
+
+        Returns:
+            str: The extracted movie title.
+        """
+        # Extract the filename from the pathname
+        filename = os.path.basename(pathname)
+
+        # Remove the file extension from the filename
+        movie_title, _ = os.path.splitext(filename)
+
+        return movie_title
+
+    def clean_movie_title(self, title:str) -> str:
 
         # Split filename into parts
-        parts = name.split('.')
+        parts = title.split('.')
 
         # Remove any non-alphanumeric characters from each part
         for i in range(len(parts)):
@@ -131,37 +149,72 @@ class PlexMovieOrganizer:
             return new_filename
         return None
 
-    def plan_filepath_change(self, pathname: str) -> Optional[Tuple[str, str]]:
+    def plan_filepath_changes(self, pathname: str, recursive: bool = False) -> Dict[str, str]:
         """
         Plans the renaming and moving of a movie file.
 
         Args:
             pathname (str): The path to the movie file.
+            recursive (bool, optional): If True, the function will recurse into
+                                        subdirectories
 
         Returns:
-            Optional[Tuple[str, str]]: A tuple containing the original filepath and the filepath to change to, or None if no changes are needed.
+            Dict[str, str]]: A dictionary containing the original filepaths and
+                             the filepaths to change to, or None if no changes 
+                             are needed.
         """
-        file_ext = os.path.splitext(pathname)[1]
-        if file_ext not in [".avi", ".mp4", ".mkv", ".mov"]:
-            return None
+        planned_changes = {}
+        
+        def process_path(pathname: str) -> Optional[Tuple[str, str]]:
+            file_ext = os.path.splitext(pathname)[1]
+            if file_ext not in [".avi", ".mp4", ".mkv", ".mov"]:
+                return None
 
-        # Extract the filename from the pathname
-        filename = os.path.basename(pathname)
+            # Extract the filename from the pathname
+            filename = os.path.basename(pathname)
 
-        # Fetch movie data
-        movie_data = self.fetch_movie_data(filename) 
+            raw_title = get_movie_title_from_pathname(pathname)
+            
+            title = clean_movie_title(raw_title)
 
-        # Format movie title
-        movie_title = self.format_movie_name(movie_data)
+            # Fetch movie data
+            movie_data = self.fetch_movie_data(title) 
 
-        # Construct new file path
-        new_filename = movie_title + file_ext
-        new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
+            # Format movie title
+            movie_title = self.format_movie_name(movie_data)
 
-        if new_pathname != pathname:
-            return pathname, new_pathname
+            # Construct new file path
+            new_filename = movie_title + file_ext
+            new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
+
+            if new_pathname != pathname:
+                return pathname, new_pathname
+            else:
+                return None
+
+        if recursive:
+            for dirpath, _, filenames in os.walk(pathname):
+                for filename in filenames:
+                    old_path = os.path.join(dirpath, filename)
+                    change = process_path(old_path)
+                    if change:
+                        planned_changes[change[0]] = change[1]
+
+                # Plan directory name change
+                if planned_changes:
+                    old_dir = os.path.basename(dirpath)
+                    first_new_path = next(iter(planned_changes.values()))
+                    movie_title = os.path.splitext(os.path.basename(first_new_path))[0]
+                    parent_dir = os.path.dirname(dirpath)
+                    new_dirpath = os.path.join(parent_dir, movie_title)
+                    if new_dirpath != dirpath:
+                        planned_changes[dirpath] = new_dirpath
         else:
-            return None
+            change = process_path(pathname)
+            if change:
+                planned_changes[change[0]] = change[1]
+                
+        return planned_changes
 
     def remove_user_specified_strings(self, name: str): 
         """
