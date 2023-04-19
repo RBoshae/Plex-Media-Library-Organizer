@@ -1,26 +1,104 @@
-# Plex Media Organizer
+# Plex Movie Organizer
 
-Plex Media Organizer is a Python program that renames movie files in a digital library according to the Plex naming convention.
+Plex Movie Organizer is a Python tool that helps you organize your movie files
+in a Plex-friendly format by fetching movie information from the OMDb API and
+renaming the movie files and directories accordingly.
 
 ## Installation
 
-To use Plex Media Organizer, you'll need to have Python 3 installed on your system. You can download Python from the official website: https://www.python.org/downloads/
+1. Clone the repository:
 
-You'll also need to install the `requests` module, which can be installed using pip:
+```bash
+git clone https://github.com/your-repo/plex-movie-organizer.git
+```
 
-Once you have Python and `requests` installed, download the `plex_media_organizer.py` file from this repository and save it to your computer.
+2. Change the working directory to `plex-movie-organizer`:
+
+```bash
+cd plex-movie-organizer
+```
+
+3. Install the required dependencies using `pip`:
+
+```bash
+pip install -r requirements.txt
+```
+
+## OMDb API Setup
+
+To use Plex Movie Organizer, you need an API key from OMDb.
+
+1. Sign up for an API key at [OMDb API](https://www.omdbapi.com/apikey.aspx).
+
+2. Create a `keys.py` file in the root of the `plex-movie-organizer` directory
+   with the following content:
+
+```python
+OMDB_API_KEY = 'your_api_key_here'
+```
+
+Replace your_api_key_here with the API key you received from OMDb.
+
+## User Specified Strings
+
+To remove specific strings from movie titles, create a
+user_specified_strings.txt file in the root of the plex-movie-organizer
+directory. Each line of the file should contain a string you want to remove
+from the movie titles. For example:
+
+```
+example.string.1
+example.string.2
+```
+
+The program will automatically remove these strings from the movie titles when
+renaming them.
 
 ## Usage
 
-To use Plex Media Organizer, you'll need to have a digital library of movies in a folder on your computer. The movies should be in MP4 format and named in a way that includes the movie title and year, separated by spaces or dots. For example: `The Shawshank Redemption (1994).mp4`.
+Once you have set up the OMDb API key and created the keys.py and
+user_specified_strings.txt files, you can use the Plex Movie Organizer to rename
+and organize your movie files.
 
-To run Plex Media Organizer, open a terminal window and navigate to the folder where you saved the `plex_media_organizer.py` file. Then, run the following command:
+### Using the run.py script
 
-Replace `/path/to/your/digital/library/` with the path to the folder containing your movie files, and `mp4` with the file extension of your movie files if it's different from `.mp4`.
+You can use the included run.py script to quickly rename movies by providing the
+path to your movie folder as an argument. You can also use the --recursive flag
+to process movies in subdirectories.
 
-Plex Media Organizer will iterate over all movie files in the specified folder, fetch data for each movie from the OMDb API, and rename the files according to the Plex naming convention. The new file names will include the movie title, year, and optional IMDb ID, separated by dashes.
+```bash
+python run.py --path "/path/to/your/movie/folder" --recursive
+```
+
+This command will process all movie files in the specified folder and its
+subdirectories, fetch movie information from the OMDb API, and rename the files
+and directories accordingly.
+
+### Using the Plex Movie Organizer in your own script
+
+Here's a basic example of how to use the Plex Movie Organizer in your own Python
+script:
+
+```python
+from plex_movie_organizer import PlexMovieOrganizer
+
+# Initialize the Plex Movie Organizer
+organizer = PlexMovieOrganizer()
+
+# Plan the filepath changes
+pathname = "/path/to/your/movie/folder"
+planned_changes = organizer.plan_filepath_changes(pathname, recursive=True)
+
+# Execute the planned changes
+organizer.execute_filepath_changes(planned_changes)
+```
+
+This example will process all movie files in the specified folder and its
+subdirectories, fetch movie information from the OMDb API, and rename the files
+and directories accordingly.
 
 ## Contributing
 
-If you'd like to contribute to Plex Media Organizer, please submit a pull request or open an issue on this repository. We welcome contributions of all kinds, including bug fixes, feature requests, and documentation improvements.
-
+If you'd like to contribute to Plex Media Organizer, please submit a pull
+request or open an issue on this repository. We welcome contributions of all
+kinds, including bug fixes, feature requests, and documentation improvements.
