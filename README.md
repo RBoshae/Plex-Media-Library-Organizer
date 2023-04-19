@@ -1,5 +1,8 @@
 # Plex Movie Organizer
 
+**Note**: This project is still a work in progress and may not be fully
+functional yet. Contributions and feedback are welcome!
+
 Plex Movie Organizer is a Python tool that helps you organize your movie files
 in a Plex-friendly format by fetching movie information from the OMDb API and
 renaming the movie files and directories accordingly.
