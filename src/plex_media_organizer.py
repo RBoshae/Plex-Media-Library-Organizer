@@ -116,8 +116,11 @@ class PlexMovieOrganizer:
         """
         Formats the name of a movie file.
 
-        :param movie_data: The collection containing movie information.
-        :return: The formatted name of the movie file.
+        Args:
+            movie_data (dict): The collection containing movie information.
+
+        Returns:
+            str: The formatted name of the movie file
         """
 
         # Construct the new filename according to the Plex naming convention
@@ -126,8 +129,49 @@ class PlexMovieOrganizer:
             if 'imdbID' in movie_data:
                 new_filename += f' ({movie_data["imdbID"]})'
         
-            return new_filename
+            return self.remove_invalid_chars(new_filename)
         return None
+
+
+    def format_movie_dirname(self, movie_data:dict) -> str:
+        """
+        Formats the name of the movie directory
+
+        Args:
+            movie_data (dict): The collection containing movie information.
+
+        Returns:
+            str: The formatted name of the movie directory
+        """
+        if movie_data is not None:
+            new_dirname = f'{movie_data["Title"]} ({movie_data["Year"]})'
+            return self.remove_invalid_chars(new_dirname)
+        return None
+
+    def remove_invalid_chars(self, input_str: str, os_type: str = 'windows') -> str:
+        """
+        Removes all invalid characters from a string, making it suitable for use as a movie name or directory name.
+
+        Args:
+            input_str (str): The input string to process.
+            os_type (str, optional): The target operating system. Either 'windows', 'macos', or 'linux'. Defaults to 'windows'.
+
+        Returns:
+            str: The processed string with invalid characters removed.
+        """
+
+        # Define the invalid characters based on the target operating system
+        if os_type == 'windows':
+            invalid_chars = r'[<>:"/\\|?*]'
+        elif os_type in ['macos', 'linux']:
+            invalid_chars = r'[/\0]'
+        else:
+            raise ValueError(f"Unsupported os_type: {os_type}. Use 'windows', 'macos', or 'linux'.")
+
+        # Remove invalid characters using a regular expression
+        cleaned_str = re.sub(invalid_chars, '', input_str)
+
+        return cleaned_str
 
     def plan_filepath_changes(self, pathname: str, recursive: bool = False) -> Dict[str, str]:
         """
@@ -166,9 +210,15 @@ class PlexMovieOrganizer:
             # Format movie title
             formatted_movie_filename = self.format_movie_filename(movie_data)
 
+            # Format directory name
+            formatted_movie_dirname = self.format_movie_dirname(movie_data)
+
+            parent_dir = os.path.dirname(os.path.dirname(pathname))
+
             # Construct new file path
             new_filename = formatted_movie_filename + file_ext
-            new_pathname = os.path.join(os.path.dirname(pathname), new_filename)
+            new_parent_dir = os.path.join(parent_dir, formatted_movie_dirname)
+            new_pathname = os.path.join(new_parent_dir, new_filename)
 
             if new_pathname != pathname:
                 return pathname, new_pathname
@@ -182,16 +232,6 @@ class PlexMovieOrganizer:
                     change = process_path(old_path)
                     if change:
                         planned_changes[change[0]] = change[1]
-
-                # Plan directory name change
-                if planned_changes:
-                    old_dir = os.path.basename(dirpath)
-                    first_new_path = next(iter(planned_changes.values()))
-                    movie_title = os.path.splitext(os.path.basename(first_new_path))[0]
-                    parent_dir = os.path.dirname(dirpath)
-                    new_dirpath = os.path.join(parent_dir, movie_title)
-                    if new_dirpath != dirpath:
-                        planned_changes[dirpath] = new_dirpath
         else:
             change = process_path(pathname)
             if change:
