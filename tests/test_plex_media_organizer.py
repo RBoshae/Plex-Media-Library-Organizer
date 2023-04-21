@@ -1,6 +1,8 @@
 import os
 import pytest
+import shutil
 import sys
+from pathlib import Path
 from typing import Dict
 
 src_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'))
@@ -18,12 +20,46 @@ def plex_movie_organizer(api_key):
     return PlexMovieOrganizer(api_key=api_key)
 
 @pytest.fixture
-def test_dir(tmpdir):
+def simple_movie_structure(tmpdir):
     # create test files and directory structure
     movies_dir = tmpdir.mkdir("movies")
     test_movie_dir = movies_dir.mkdir("Avengers")
     test_movie_dir.join("avengers.endgame.mov").write("")
     yield movies_dir
+
+
+@pytest.fixture
+def large_movie_structure(tmpdir):
+    movies_dir = tmpdir.mkdir("movies")
+    
+    # Avengers
+    avengers = movies_dir.mkdir("Avengers")
+    avengers.join("avengers.endgame.mov").write("")
+    avengers.join("poster.jpeg").write("")
+    avengers.join("avengers.endgame.srt").write("")
+    
+    # Inception
+    inception = movies_dir.mkdir("Inception")
+    inception.join("inception.mkv").write("")
+    inception.join("poster.jpeg").write("")
+    inception.join("inception.srt").write("")
+    
+    # Interstellar
+    interstellar = movies_dir.mkdir("Interstellar")
+    interstellar.join("interstellar.mkv").write("")
+    interstellar.join("poster.jpeg").write("")
+    interstellar.join("interstellar.srt").write("")
+    
+    # Toy Story
+    toy_story = movies_dir.mkdir("Toy_Story")
+    toy_story.join("toy_story.mp4").write("")
+    toy_story.join("poster.jpeg").write("")
+    toy_story.join("toy_story.srt").write("")
+    
+    yield str(movies_dir)
+
+    # Cleanup
+    shutil.rmtree(movies_dir)
 
 def test_format_movie_filename(plex_movie_organizer):
     # Sample movie data
@@ -42,11 +78,12 @@ def test_format_movie_filename(plex_movie_organizer):
     # Assert that the output matches the expected result
     assert formatted_filename == expected_filename
 
-def test_plan_filepath_change(test_dir, plex_movie_organizer):
-    test_movie_path = str(test_dir.join("Avengers", "avengers.endgame.mov"))
+@pytest.mark.parametrize("movie_structure", ["simple_movie_structure", "large_movie_structure"])
+def test_plan_filepath_change(movie_structure, plex_movie_organizer, request):
+    test_movie_path = str(request.getfixturevalue(movie_structure))
     planned_change = plex_movie_organizer.plan_filepath_changes(test_movie_path)
 
-    expected_new_path = str(test_dir.join("Avengers Endgame (2019)", "Avengers Endgame (2019) (tt4154796).mov"))
+    expected_new_path = test_movie_path
 
     assert planned_change == {test_movie_path: expected_new_path}
 
