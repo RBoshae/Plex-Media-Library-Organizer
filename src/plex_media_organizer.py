@@ -311,3 +311,9 @@ class PlexMovieOrganizer:
             return response.json()
         else:
             return None
+
+    def print_planned_changes(self, changes: Dict[str, str]) -> None:
+        print("Ppreview_changeslanned changes:")
+        for old_path, new_path in changes.items():
+            print(f"{old_path} -> {new_path}")
+

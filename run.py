@@ -25,19 +25,8 @@ def main():
         return
 
     if os.path.isfile(args.path):
-        organizer.preview_changes
-        organizer.rename_and_move_movies(args.path, silent=args.silent)
-    else:
-        files = []
-        if args.recurse:
-            for (dirpath, _, filenames) in os.walk(args.path):
-                for filename in filenames:
-                    files.append(os.path.join(dirpath, filename))
-        else:
-            files = [os.path.join(args.path, f) for f in os.listdir(args.path) if os.path.isfile(os.path.join(directory, f))]
-
-            for f in files:
-                organizer.rename_and_move_movies(f, silent=args.silent)
+        changes = organizer.plan_filepath_changes(args.path, silent=args.silent, recurslive=args.recursive)
+        organizer.execute_filepath_changes(changes)
 
 if __name__ == '__main__':
     main()
