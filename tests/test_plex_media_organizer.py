@@ -79,9 +79,9 @@ def test_format_movie_filename(plex_movie_organizer):
     assert formatted_filename == expected_filename
 
 @pytest.mark.parametrize("movie_structure", ["simple_movie_structure", "large_movie_structure"])
-def test_plan_filepath_change(movie_structure, plex_movie_organizer, request):
+def test_plan_changes(movie_structure, plex_movie_organizer, request):
     test_movie_path = str(request.getfixturevalue(movie_structure))
-    planned_change = plex_movie_organizer.plan_filepath_changes(test_movie_path)
+    planned_change = plex_movie_organizer.plan_changes(test_movie_path)
 
     expected_new_path = test_movie_path
 

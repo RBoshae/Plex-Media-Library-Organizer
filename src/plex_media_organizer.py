@@ -173,7 +173,7 @@ class PlexMovieOrganizer:
 
         return cleaned_str
 
-    def plan_filepath_changes(self, pathname: str, recursive: bool = False) -> Dict[str, str]:
+    def plan_changes(self, pathname: str, recursive: bool = False) -> Dict[str, str]:
         """
         Plans the renaming and moving of a movie file.
 
@@ -187,8 +187,9 @@ class PlexMovieOrganizer:
                              the filepaths to change to, or None if no changes 
                              are needed.
         """
-        planned_changes = {}
+        changes = {}
         
+        # TODO (rboshae) Continue fixing from here
         def process_path(pathname: str) -> Optional[Tuple[str, str]]:
             file_ext = os.path.splitext(pathname)[1]
             if file_ext not in [".avi", ".mp4", ".mkv", ".mov"]:
@@ -231,13 +232,13 @@ class PlexMovieOrganizer:
                     old_path = os.path.join(dirpath, filename)
                     change = process_path(old_path)
                     if change:
-                        planned_changes[change[0]] = change[1]
+                        changes[change[0]] = change[1]
         else:
             change = process_path(pathname)
             if change:
-                planned_changes[change[0]] = change[1]
+                changes[change[0]] = change[1]
                 
-        return planned_changes
+        return changes
 
     def remove_user_specified_strings(self, name: str): 
         """
