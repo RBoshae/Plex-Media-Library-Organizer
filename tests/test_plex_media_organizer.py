@@ -87,11 +87,11 @@ def test_plan_filepath_change(movie_structure, plex_movie_organizer, request):
 
     assert planned_change == {test_movie_path: expected_new_path}
 
-def test_execute_filepath_changes(test_dir, plex_movie_organizer):
-    test_movie_path = str(test_dir.join("Avengers", "avengers.endgame.mov"))
+def test_execute_filepath_changes(tmpdir, plex_movie_organizer):
+    test_movie_path = str(tmpdir.join("Avengers", "avengers.endgame.mov"))
 
     planned_changes: Dict[str, str] = {
-        test_movie_path: str(test_dir.join("Avengers Endgame (2019)", "Avengers Endgame (2019).mov"))
+        test_movie_path: str(tmpdir.join("Avengers Endgame (2019)", "Avengers Endgame (2019).mov"))
     }
 
     plex_movie_organizer.execute_filepath_changes(planned_changes)
