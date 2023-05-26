@@ -173,12 +173,12 @@ class PlexMovieOrganizer:
 
         return cleaned_str
 
-    def plan_changes(self, pathname: str, recursive: bool = False) -> Dict[str, str]:
+    def plan_changes(self, dir_path: str, recursive: bool = False) -> Dict[str, str]:
         """
         Plans the renaming and moving of a movie file.
 
         Args:
-            pathname (str): The path to the movie file.
+            dir_path (str): The directory path to the movie file(s).
             recursive (bool, optional): If True, the function will recurse into
                                         subdirectories
 
@@ -189,14 +189,13 @@ class PlexMovieOrganizer:
         """
         changes = {}
         
-        # TODO (rboshae) Continue fixing from here
-        def process_path(pathname: str) -> Optional[Tuple[str, str]]:
-            file_ext = os.path.splitext(pathname)[1]
+        def plan_change(file_path: str) -> Optional[Tuple[str, str]]:
+            file_ext = os.path.splitext(file_path)[1]
             if file_ext not in [".avi", ".mp4", ".mkv", ".mov"]:
                 return None
 
             # Extract the filename from the pathname
-            filename = os.path.basename(pathname)
+            filename = os.path.basename(file_path)
 
             filename_without_ext, _ = os.path.splitext(filename)
             
@@ -206,6 +205,7 @@ class PlexMovieOrganizer:
             movie_data = self.fetch_movie_data(clean_title) 
 
             if movie_data is None:
+                print(f"Unable to query filename: {filename}")
                 return
 
             # Format movie title
@@ -214,29 +214,32 @@ class PlexMovieOrganizer:
             # Format directory name
             formatted_movie_dirname = self.format_movie_dirname(movie_data)
 
-            parent_dir = os.path.dirname(os.path.dirname(pathname))
+            parent_dir = os.path.dirname(os.path.dirname(file_path))
 
             # Construct new file path
             new_filename = formatted_movie_filename + file_ext
             new_parent_dir = os.path.join(parent_dir, formatted_movie_dirname)
             new_pathname = os.path.join(new_parent_dir, new_filename)
 
-            if new_pathname != pathname:
-                return pathname, new_pathname
+            if new_pathname != file_path:
+                return file_path, new_pathname
             else:
                 return None
 
         if recursive:
-            for dirpath, _, filenames in os.walk(pathname):
+            for dirpath, _, filenames in os.walk(dir_path):
                 for filename in filenames:
-                    old_path = os.path.join(dirpath, filename)
-                    change = process_path(old_path)
+                    file_path = os.path.join(dirpath, filename)
+                    change = plan_change(file_path)
                     if change:
                         changes[change[0]] = change[1]
         else:
-            change = process_path(pathname)
-            if change:
-                changes[change[0]] = change[1]
+            for filename in os.listdir(dir_path):
+                full_path = os.path.join(dir_path, filename)
+                if os.path.isfile(full_path):
+                    change = plan_change(full_path)
+                    if change:
+                        changes[change[0]] = change[1]
                 
         return changes
 
