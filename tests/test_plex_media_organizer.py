@@ -41,7 +41,7 @@ def expected_simple(movies_tmpdir):
     # Return the expected result for the simple case
     movies_path = str(movies_tmpdir)
     return { 
-            f'{movies_path}/movies/Avengers/avengers.endgame.mov' : f'{movies_path}movies/Avengners (2019)/Avengers Endgame (2019).mov'
+            f'{movies_path}/movies/Avengers/avengers.endgame.mov' : f'{movies_path}/movies/Avengers Endgame (2019)/Avengers Endgame (2019) (tt4154796).mov'
     }
     
 
