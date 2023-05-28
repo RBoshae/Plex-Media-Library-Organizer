@@ -29,6 +29,41 @@ class PlexMovieOrganizer:
             api_key = os.environ.get('OMDB_API_KEY') or OMDB_API_KEY
         self.api_key = api_key
 
+    def organize(self, dir_path: str, recursive: bool = False):
+        """
+        Organizes media files in a directory.
+
+        :param dir_path: The path to the directory containing the media files.
+        :param recursive: If True, the program will recursively search the
+                        directory for media files. Defaults to False.
+        """
+
+        # Execute the filepath changes
+        self.organize_movies(dir_path, recursive)
+
+    def organize_movies(self, dir_path: str, recursive: bool = False):
+        """
+        Organizes movie and related files in a directory.
+
+        :param dir_path: The path to the directory containing the movie related
+                        files.
+        :param recursive: If True, the program will recursively search the
+                        directory for movie files. Defaults to False.
+        """
+
+        # Get a list of all movie files in the directory
+        movie_files = self.get_movie_files(dir_path, recursive)
+
+        # Get a list of all movie files with their metadata
+        movie_data = self.get_movie_data(movie_files)
+
+        # Plan the filepath changes
+        changes = self.plan_filepath_changes(movie_data)
+
+        # Execute the filepath changes
+        self.execute_filepath_changes(changes)
+
+
     def execute_filepath_changes(self, changes: Dict[str, str]) -> None:
         """
         Executes the planned filepath change to rename and move movie files.
