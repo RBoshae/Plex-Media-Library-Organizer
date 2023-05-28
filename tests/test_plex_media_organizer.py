@@ -120,6 +120,16 @@ def test_plan_changes(movies_dir, expected, plex_movie_organizer, request):
 
     assert planned_changes == expected_plans
 
+
+def print_directory_tree(directory):
+    for root, dirs, files in os.walk(directory):
+        level = root.replace(directory, '').count(os.sep)
+        indent = ' ' * 4 * level
+        print(f'{indent}{os.path.basename(root)}/')
+        sub_indent = ' ' * 4 * (level + 1)
+        for f in files:
+            print(f'{sub_indent}{f}')
+
 @pytest.mark.parametrize("movies_dir", [
     ("simple_movie_path_structure"),
     ("large_movie_path_structure")
@@ -139,4 +149,6 @@ def test_execute_filepath_changes(movies_dir, plex_movie_organizer, request):
 
             # Check if the new file exists with the correct path
             assert os.path.exists(new_pathname)
+
+    print_directory_tree(test_movie_path)
 
