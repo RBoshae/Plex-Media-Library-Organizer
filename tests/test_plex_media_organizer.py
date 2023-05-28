@@ -106,13 +106,13 @@ def test_format_movie_filename(plex_movie_organizer):
     # Assert that the output matches the expected result
     assert formatted_filename == expected_filename
 
-@pytest.mark.parametrize("movie_path, expected", [
+@pytest.mark.parametrize("movies_dir, expected", [
     ("simple_movie_path_structure", "expected_simple"), 
     ("large_movie_path_structure", "expected_large")
 ])
-def test_plan_changes(movie_path, expected, plex_movie_organizer, request):
+def test_plan_changes(movies_dir, expected, plex_movie_organizer, request):
     
-    test_movie_path = str(request.getfixturevalue(movie_path))
+    test_movie_path = str(request.getfixturevalue(movies_dir))
     planned_changes = plex_movie_organizer.plan_changes(test_movie_path,
                                                        recursive=True)
 
@@ -120,17 +120,23 @@ def test_plan_changes(movie_path, expected, plex_movie_organizer, request):
 
     assert planned_changes == expected_plans
 
-def test_execute_filepath_changes(tmpdir, plex_movie_organizer):
-    test_movie_path = str(tmpdir.join("Avengers", "avengers.endgame.mov"))
+@pytest.mark.parametrize("movies_dir", [
+    ("simple_movie_path_structure"),
+    ("large_movie_path_structure")
+])
+def test_execute_filepath_changes(movies_dir, plex_movie_organizer, request):
 
-    planned_changes: Dict[str, str] = {
-        test_movie_path: str(tmpdir.join("Avengers Endgame (2019)", "Avengers Endgame (2019).mov"))
-    }
+    test_movie_path = str(request.getfixturevalue(movies_dir))
+    
+    planned_changes = plex_movie_organizer.plan_changes(test_movie_path, recursive=True)
 
     plex_movie_organizer.execute_filepath_changes(planned_changes)
 
-    # Check if the original file no longer exists
-    assert not os.path.exists(test_movie_path)
+    for old_pathname, new_pathname in planned_changes.items():
+        if old_pathname != new_pathname:
+            # Check if the original file no longer exists
+            assert not os.path.exists(old_pathname)
 
-    # Check if the new file exists with the correct path
-    assert os.path.exists(planned_changes[test_movie_path])
+            # Check if the new file exists with the correct path
+            assert os.path.exists(new_pathname)
+
