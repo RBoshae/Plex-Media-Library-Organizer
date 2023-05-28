@@ -83,10 +83,10 @@ def large_movie_path_structure(movies_tmpdir):
 def expected_large(movies_tmpdir):
     movies_path = str(movies_tmpdir)
     return {
-        f'{movies_path}/movies/Avengers/avengers.endgame.mov': f'{movies_path}/movies/Avengers Endgame (2019).mov',
-        f'{movies_path}/movies/Inception/inception.mkv': f'{movies_path}/movies/Inception (2010).mkv',
-        f'{movies_path}/movies/Interstellar/interstellar.mkv': f'{movies_path}/movies/Interstellar (2014).mkv',
-        f'{movies_path}/movies/Toy_Story/toy_story.mp4': f'{movies_path}/movies/Toy Story (1995).mp4',
+        f'{movies_path}/movies/Avengers/avengers.endgame.mov': f'{movies_path}/movies/Avengers Endgame (2019)/Avengers Endgame (2019) (tt4154796).mov',
+        f'{movies_path}/movies/Inception/inception.mkv': f'{movies_path}/movies/Inception (2010)/Inception (2010) (tt1375666).mkv',
+        f'{movies_path}/movies/Interstellar/interstellar.mkv': f'{movies_path}/movies/Interstellar (2014)/Interstellar (2014) (tt0816692).mkv',
+        f'{movies_path}/movies/Toy_Story/toy_story.mp4': f'{movies_path}/movies/Toy Story (1995)/Toy Story (1995) (tt0114709).mp4',
     } 
 
 def test_format_movie_filename(plex_movie_organizer):

@@ -59,7 +59,10 @@ class PlexMovieOrganizer:
             else:
                 print(f"Warning! File {new_path} already exists. Skipping")
 
-    def fetch_movie_data(self, title: str, year: Optional[str] = None, silent: bool = False) -> dict:
+    def fetch_movie_data(self,
+                         title: str,
+                         year: Optional[str] = None, 
+                         silent: bool = False) -> dict:
         """
         Fetches movie data from the OMDB API.
 
@@ -78,7 +81,7 @@ class PlexMovieOrganizer:
         movie_data = self.request_movie_data(title, year)
 
         # If movie data is empty and guess is enabled, try to guess the movie title
-        if not movie_data:
+        if not movie_data or movie_data['Response'] == 'False':
             if not silent:
                 response = input(f"Unable to fetch movie data for {title}. To try again, please specify a movie title to search for? (Press Enter to skip)")
                 return None # TODO Remove return None and implement lines below
@@ -93,11 +96,11 @@ class PlexMovieOrganizer:
     def clean_movie_title(self, title:str) -> str:
 
         # Split filename into parts
-        parts = title.split('.')
+        parts = title.split('._-')
 
         # Remove any non-alphanumeric characters from each part
         for i in range(len(parts)):
-            parts[i] = re.sub('[^0-9a-zA-Z]+', '', parts[i])
+            parts[i] = re.sub('[^0-9a-zA-Z]+', ' ', parts[i])
         
         # If the last part is a four digit number, assume it's the year and remove it
         if parts[-1].isdigit() and len(parts[-1]) == 4:
